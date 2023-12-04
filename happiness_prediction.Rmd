@@ -1,0 +1,290 @@
+---
+title: "Happiness Score Prediction"
+author: "RABIN NEPAL (U00901360)"
+date: "2023-11-26"
+output: pdf_document
+---
+
+# Necessary Library Imports
+```{r setup, include=FALSE}
+# KNN
+library(caret) 
+
+# Ridge and Lasso Regression
+library(glmnet)
+
+library(dplyr)
+
+library(tidyr)
+
+# for visualization
+library(corrplot)
+library(ggplot2)
+
+# define some constants
+DATA_DIR = "/Users/rabinnepal/gitHub/Happiness-Prediction-Project/data"
+# YEARS = list("2015","2016","2017","2018","2019","2020","2021","2022","2023")
+YEARS = 2015:2023
+YEARS = paste(YEARS) # convert num array to string array
+TOTAL_YEARS = length(YEARS)
+VARIABLE_NAMES = c()
+RESPONSE = "Happiness_score"
+
+# set working directory 
+# setwd(DATA_DIR)
+knitr::opts_knit$set(root.dir = DATA_DIR)
+
+```
+
+
+# Data Import and Cleanup
+```{r}
+# get filenames from data directory
+files = list.files(DATA_DIR)
+print(files)
+
+# read csv files for world happiness data for each year 
+# data_2015 = read.csv("2015.csv")
+# data_2016 = read.csv("2016.csv")
+# data_2017 = read.csv("2017.csv")
+# data_2018 = read.csv("2018.csv")
+# data_2019 = read.csv("2019.csv")
+# data_2020 = read.csv("2020.csv")
+# data_2021 = read.csv("2021.csv")
+# data_2022 = read.csv("2022.csv")
+# data_2023 = read.csv("2023.csv")
+
+# read csv files for world happiness data for each year 
+for(filename in files){
+  year = substring(filename,1,4)
+  # set name of variables dynamically as data_{year}
+  variable_name = paste0("data_",year)
+  VARIABLE_NAMES = c(VARIABLE_NAMES,variable_name)
+  # print(variable_name)
+  
+  # read csv file
+  year_data = read.csv(filename,stringsAsFactors = F)
+  assign(variable_name,year_data)
+  
+  # see dimension of data for each year
+  print(paste("Shape of data for ", year, "is :", dim(year_data)[1], "rows and", dim(year_data)[2], "columns."))
+}
+
+
+# see samples of each year data
+# head(data_2015)
+for(i in 1:TOTAL_YEARS){
+  print(paste("A sample of data for year", 2014+i,":"))
+  dummy_year = get(VARIABLE_NAMES[i])
+  glimpse(dummy_year)
+}
+
+
+# remove null values from dataset
+for(i in 1:TOTAL_YEARS){
+  dummy_year = get(VARIABLE_NAMES[i])
+  if(any(is.na(dummy_year))){
+    print("Found NA values and removing them...")
+    dummy_year = na.omit(dummy_year)
+    assign(VARIABLE_NAMES[i],dummy_year)
+  }
+}
+
+```
+
+
+
+# Data Exploration
+```{r}
+
+corrplot(corr = cor(data_2023[,-c(1,2)]),method = "color", outline = T,addCoef.col = "white", number.digits = 2, number.cex = 0.75)
+
+
+
+# lets first see the columns for each year data
+col_2015 = c(colnames(data_2015))
+col_2016 = colnames(data_2016)
+col_2017 = colnames(data_2017)
+col_2018 = colnames(data_2018)
+col_2019 = colnames(data_2019)
+col_2020 = colnames(data_2020)
+col_2021 = colnames(data_2021)
+col_2022 = colnames(data_2022)
+col_2023 = colnames(data_2023)
+
+# lets find which columns are consistent among all these years
+all_col = list(col_2015,col_2016,col_2017,col_2018,col_2019,col_2020,col_2021,col_2022,col_2023)
+common_values = Reduce(intersect, all_col)
+print(common_values) # gives 0 : means the columns have been named differently in the dataset
+
+# After exploring the column names we can clearly see that the same variables are named differenty in the dataset for different years. (Ex: Country , Country.or.region , Country.name )
+
+# lets make the column names uniform
+column_names = c("Country", "Happiness.Score", "GDP.per.Capita", "Social.Support", "Life.Expectancy","Freedom", "Generosity", "Corruption")
+
+# print(common_values) 
+# gives all the values in column_names
+
+# filter the values that are essential for the study (as mentioned on the world happiness report appendix)
+
+for(i in 1:TOTAL_YEARS){
+  dummy_year = get(VARIABLE_NAMES[i])
+  # select according to columns names
+  dummy_year = dummy_year[column_names]
+  # sort by column name
+  dummy_year = dummy_year[,order(colnames(dummy_year))]
+  assign(VARIABLE_NAMES[i], dummy_year ) 
+  }
+
+
+# lets see which countries has held the No.1 rank in happiness over the years
+happy_countries = c()
+happy_countries_score = c()
+
+sad_countries = c()
+sad_countries_score = c()
+
+for(i in 1:TOTAL_YEARS){
+  dummy_year = get(VARIABLE_NAMES[i])
+  happy_countries[i] = dummy_year$Country[1]
+  happy_countries_score[i] = dummy_year$Happiness.Score[1]
+  sad_countries[i] = dummy_year$Country[nrow(dummy_year)]
+  sad_countries_score[i] = dummy_year$Happiness.Score[nrow(dummy_year)]
+}
+
+
+
+print(happy_countries)
+print(sad_countries)
+
+# see trend of happiness along the years 
+barplot(happy_countries_score,names.arg=happy_countries,main = "Top Happiness Scores from 2015 to 2023", ylab = "Happiness Score",las = 2, col = 'coral')
+
+# see trend of sadness along the years
+barplot(sad_countries_score,names.arg=sad_countries,main = "Least Happiness Scores from 2015 to 2023", ylab = "Happiness Score",las = 2, col= "slateblue")
+
+
+
+
+# lets explore in details for a particular year
+# summary of data
+summary(data_2023)
+#see relationship between all variables in data
+pairs(data_2023[,-2],lower.panel=panel.smooth)
+
+# see relation between happiness and different factors
+cor(data_2023[,-2])
+
+corrplot(corr = cor(data_2023[,-2]),method = "color", outline = T,addCoef.col = "white", number.digits = 2, number.cex = 0.75)
+
+# top 5 happiest and unhappiest countries in 2023
+
+# top 5 generous and ungenerous countries in 2023
+
+# top 5 healthiest and unhealthiest countries in 2023
+
+# top 5 richest and poorest countries in 2023
+
+# top 5 free and restricted countries in 2023
+
+# top 5 corrupted and uncorrupted countries in 2023
+
+```
+
+
+
+
+
+# Data Clean-up for Regression
+
+```{r}
+
+
+
+```
+
+# Train-test Split
+```{r}
+
+```
+
+# Linear Regression Model
+
+```{r}
+
+```
+
+# Lasso Regression Model
+
+```{r}
+
+```
+
+# Ridge Regression Model
+
+```{r}
+
+```
+
+# K-Nearest Neighbour Model
+
+```{r}
+
+```
+
+# Comparison of Results
+
+```{r}
+
+```
+
+## Accuracies
+
+```{r}
+
+```
+
+| Models               |  Accuracy   |
+|----------------------|-------------|
+| Logistic Regression  |  79.38%     |
+| LDA                  |  84.53%     |
+| LDA (0.3)            |  84.53%     |
+| Naive Bayes          |  83.50%     |
+| KNN                  |  67.01%     |
+
+## Plots
+
+```{r}
+
+```
+
+## k-fold Cross Validation
+
+```{r}
+
+```
+
+
+
+```{r cars}
+summary(cars)
+```
+
+
+
+# References:
+remove this link in final publication
+* https://www.analyticsvidhya.com/blog/2022/01/different-types-of-regression-models/
+* Dataset: 
+https://medium.com/@TheSussex/is-happiness-free-bb9ef70d0bd5
+https://www.kaggle.com/code/mshinde10/predicting-world-happiness
+https://www.kaggle.com/code/kagleo123/world-happiness-record-eda-ml-regression
+https://www.kaggle.com/datasets/unsdsn/world-happiness/code?datasetId=894&sortBy=dateRun
+https://www.kaggle.com/datasets/unsdsn/world-happiness/code?datasetId=894&sortBy=dateRun
+
+
+Dataset for 2020:
+https://www.kaggle.com/datasets/londeen/world-happiness-report-2020
+
+a
+https://worldhappiness.report/data/
