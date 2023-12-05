@@ -11,7 +11,7 @@ output: pdf_document
 library(caret) 
 
 # Ridge and Lasso Regression
-library(glmnet)
+# library(glmnet)
 
 library(dplyr)
 
@@ -22,7 +22,9 @@ library(corrplot)
 library(ggplot2)
 
 # define some constants
-DATA_DIR = "/Users/rabinnepal/gitHub/Happiness-Prediction-Project/data"
+# DATA_DIR = "/Users/rabinnepal/gitHub/Happiness-Prediction-Project/data"
+DATA_DIR = "/home/ann/github/Happiness-Prediction-Project/data/"
+
 # YEARS = list("2015","2016","2017","2018","2019","2020","2021","2022","2023")
 YEARS = 2015:2023
 YEARS = paste(YEARS) # convert num array to string array
@@ -64,6 +66,7 @@ for(filename in files){
   
   # read csv file
   year_data = read.csv(filename,stringsAsFactors = F)
+   # year_data = read.csv(filename,stringsAsFactors = T)
   assign(variable_name,year_data)
   
   # see dimension of data for each year
@@ -74,7 +77,7 @@ for(filename in files){
 # see samples of each year data
 # head(data_2015)
 for(i in 1:TOTAL_YEARS){
-  print(paste("A sample of data for year", 2014+i,":"))
+  print(paste("A sample of data for year",2014+i,":"))
   dummy_year = get(VARIABLE_NAMES[i])
   glimpse(dummy_year)
 }
@@ -94,12 +97,9 @@ for(i in 1:TOTAL_YEARS){
 
 
 
-# Data Exploration
+# Data Exploration (All Years)
 ```{r}
-
-corrplot(corr = cor(data_2023[,-c(1,2)]),method = "color", outline = T,addCoef.col = "white", number.digits = 2, number.cex = 0.75)
-
-
+# corrplot(corr = cor(data_2023[,-c(1,2)]),method = "color", outline = T,addCoef.col = "white", number.digits = 2, number.cex = 0.75)
 
 # lets first see the columns for each year data
 col_2015 = c(colnames(data_2015))
@@ -152,8 +152,6 @@ for(i in 1:TOTAL_YEARS){
   sad_countries_score[i] = dummy_year$Happiness.Score[nrow(dummy_year)]
 }
 
-
-
 print(happy_countries)
 print(sad_countries)
 
@@ -164,8 +162,70 @@ barplot(happy_countries_score,names.arg=happy_countries,main = "Top Happiness Sc
 barplot(sad_countries_score,names.arg=sad_countries,main = "Least Happiness Scores from 2015 to 2023", ylab = "Happiness Score",las = 2, col= "slateblue")
 
 
+# a funcition to make the access of data easy
+get_all_year_values = function(col_number){
+  top_countries = c()
+  top_countries_values = c()
+  sad_countries = c()
+  sad_countries_values = c()
+
+  for(i in 1:TOTAL_YEARS){
+    dummy_year = get(VARIABLE_NAMES[i])
+    dummy_year = dummy_year[order(dummy_year[,col_number],decreasing = TRUE),]
+    top_countries[i] = dummy_year$Country[1]
+    top_countries_values[i] = dummy_year[1,col_number]
+    sad_countries[i] = dummy_year$Country[nrow(dummy_year)]
+    sad_countries_values[i] = dummy_year[nrow(dummy_year),col_number]
+  }
+  
+  return(list(top_countries = top_countries,
+              top_countries_values = as.numeric(top_countries_values),
+              sad_countries = sad_countries,
+              sad_countries_values = as.numeric(sad_countries_values)))
+}
+
+# see trend of corruption over the years
+corruption_metric = get_all_year_values(1)
+barplot(corruption_metric$top_countries_values,names.arg=corruption_metric$top_countries,main = "Highest Corruption Scores from 2015 to 2023", ylab = "Corruption Score",las = 2, col = 'coral')
+barplot(corruption_metric$sad_countries_values,names.arg=corruption_metric$sad_countries,main = "Least Corruption Scores from 2015 to 2023", ylab = "Corruption Score",las = 2, col= "slateblue")
 
 
+# see trend of freedom over the years
+freedom_metric = get_all_year_values(3)
+barplot(freedom_metric$top_countries_values,names.arg=freedom_metric$top_countries,main = "Highest Freedom Scores from 2015 to 2023", ylab = "Freedom Score",las = 2, col = 'coral')
+barplot(freedom_metric$sad_countries_values,names.arg=freedom_metric$sad_countries,main = "Least Freedom Scores from 2015 to 2023", ylab = "Freedom Score",las = 2, col= "slateblue")
+
+
+# see trend of gdp over the years
+gdp_metric = get_all_year_values(4)
+barplot(gdp_metric$top_countries_values,names.arg=gdp_metric$top_countries,main = "Highest GDP from 2015 to 2023", ylab = "GDP",las = 2, col = 'coral')
+barplot(gdp_metric$sad_countries_values,names.arg=gdp_metric$sad_countries,main = "Least GDP from 2015 to 2023", ylab = "GDP",las = 2, col= "slateblue")
+
+
+# see trend of genorosity over the years
+generosity_metric = get_all_year_values(5)
+barplot(generosity_metric$top_countries_values,names.arg=generosity_metric$top_countries,main = "Most Generous Countries from 2015 to 2023", ylab = "Freedom Score",las = 2, col = 'coral')
+barplot(generosity_metric$sad_countries_values,names.arg=generosity_metric$sad_countries,main = "Least Generous Countries from 2015 to 2023", ylab = "Freedom Score",las = 2, col= "slateblue")
+
+
+# see trend of life expectancy over the years
+life_metric = get_all_year_values(6)
+barplot(life_metric$top_countries_values,names.arg=life_metric$top_countries,main = "Country with Highest Life Expectancy from 2015 to 2023", ylab = "Freedom Score",las = 2, col = 'coral')
+barplot(life_metric$sad_countries_values,names.arg=life_metric$sad_countries,main = "Country with Least Life Expectancy from 2015 to 2023", ylab = "Freedom Score",las = 2, col= "slateblue")
+
+
+# see trend of Social support over the years
+social_metric = get_all_year_values(7)
+barplot(social_metric$top_countries_values,names.arg=social_metric$top_countries,main = "Country with Highest Social Support from 2015 to 2023", ylab = "Freedom Score",las = 2, col = 'coral')
+barplot(social_metric$sad_countries_values,names.arg=social_metric$sad_countries,main = "Country with Lowest Social Support from 2015 to 2023", ylab = "Freedom Score",las = 2, col= "slateblue")
+
+
+```
+
+
+
+# Data Exploration (2023)
+```{r}
 # lets explore in details for a particular year
 # summary of data
 summary(data_2023)
@@ -178,22 +238,35 @@ cor(data_2023[,-2])
 corrplot(corr = cor(data_2023[,-2]),method = "color", outline = T,addCoef.col = "white", number.digits = 2, number.cex = 0.75)
 
 # top 5 happiest and unhappiest countries in 2023
+top_5_happy = data_2023[ order(-data_2023$Happiness.Score),]
+# top_5_happy = top_5_happy$Happiness.Score[1:5]
+
+barplot(top_5_happy$Happiness.Score[1:5],names.arg=top_5_happy$Country[1:5], horiz=TRUE, main = "Top 5 happiest Countries in 2023", xlab = "Happiness Scores",las = 2, col = 'firebrick2')
+
+barplot(top_5_happy$Happiness.Score[1:nrow()],names.arg=top_5_happy$Country[1:5], horiz=TRUE, add = TRUE,las = 2, col = 'firebrick2')
+
+# # Add values at the end of each bar
+# text(top_5_happy$Happiness.Score[1:5], 1:5, labels = top_5_happy$Happiness.Score[1:5], pos = 4, cex = 0.8, col = "black")
+
+
 
 # top 5 generous and ungenerous countries in 2023
+top_5_generous = data_2023[ order(-data_2023$Generosity),]
 
 # top 5 healthiest and unhealthiest countries in 2023
+top_5_healthiest = data_2023[ order(-data_2023$Life.Expectancy),]
 
 # top 5 richest and poorest countries in 2023
+top_5_richest = data_2023[ order(-data_2023$GDP.per.Capita),]
 
 # top 5 free and restricted countries in 2023
+top_5_free = data_2023[ order(-data_2023$Freedom),]
+
 
 # top 5 corrupted and uncorrupted countries in 2023
+top_5_corrupted = data_2023[ order(-data_2023$Corruption),]
 
 ```
-
-
-
-
 
 # Data Clean-up for Regression
 
@@ -205,6 +278,9 @@ corrplot(corr = cor(data_2023[,-2]),method = "color", outline = T,addCoef.col = 
 
 # Train-test Split
 ```{r}
+print(paste("Shape of data is :", dim(data_2023)[1], "rows and", dim(data_2023)[2], "columns."))
+
+
 
 ```
 
