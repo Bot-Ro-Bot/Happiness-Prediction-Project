@@ -10,6 +10,8 @@ output: pdf_document
 library(car)
 library(psych)
 library(leaps)
+library(dplyr)
+library(tidyr)
 
 # KNN
 library(caret) 
@@ -17,8 +19,6 @@ library(kknn)
 
 # Ridge and Lasso Regression
 library(glmnet)
-library(dplyr)
-library(tidyr)
 
 # for visualization
 library(corrplot)
@@ -57,19 +57,19 @@ print(files)
 # data_2022 = read.csv("2022.csv")
 # data_2023 = read.csv("2023.csv")
 
-# read csv files for world happiness data for each year 
+# read csv files for world happiness data for each year
 for(filename in files){
   year = substring(filename,1,4)
   # set name of variables dynamically as data_{year}
   variable_name = paste0("data_",year)
   VARIABLE_NAMES = c(VARIABLE_NAMES,variable_name)
   # print(variable_name)
-  
+
   # read csv file
-  year_data = read.csv(filename,stringsAsFactors = F)
+  year_data = read.csv(filename,stringsAsFactors = F) # F to explore raw dataaset
    # year_data = read.csv(filename,stringsAsFactors = T)
   assign(variable_name,year_data)
-  
+
   # see dimension of data for each year
   print(paste("Shape of data for ", year, "is :", dim(year_data)[1], "rows and", dim(year_data)[2], "columns."))
 }
@@ -100,6 +100,27 @@ for(i in 1:TOTAL_YEARS){
 
 # Data Exploration (All Years)
 ```{r}
+# lets visualize the dataset
+# read csv files for world happiness data for each year 
+# for(filename in files){
+#   year = substring(filename,1,4)
+#   # set name of variables dynamically as data_{year}
+#   variable_name = paste0("data_",year)
+#   VARIABLE_NAMES = c(VARIABLE_NAMES,variable_name)
+#   # print(variable_name)
+#   
+#   # read csv file
+#   # year_data = read.csv(filename,stringsAsFactors = F) # F to explore raw dataaset
+#    year_data = read.csv(filename,stringsAsFactors = T)
+#   assign(variable_name,year_data)
+#   
+#   # see dimension of data for each year
+#   print(paste("Shape of data for ", year, "is :", dim(year_data)[1], "rows and", dim(year_data)[2], "columns."))
+# }
+
+
+pairs(data_2023[,-c(1,2)])
+
 corrplot(corr = cor(data_2023[,-c(1,2)]),method = "color", outline = T,addCoef.col = "white", number.digits = 2, number.cex = 0.75)
 
 # lets first see the columns for each year data
@@ -439,6 +460,9 @@ for(filename in files){
   print(paste("Shape of data for ", year, "is :", dim(year_data)[1], "rows and", dim(year_data)[2], "columns."))
 }
 
+```
+# train-test split
+```{r}
 whole_dataset = rbind(data_2015,
                       data_2016,
                       data_2017,
@@ -454,10 +478,6 @@ print(paste("Shape of data is :", dim(whole_dataset)[1], "rows and", dim(whole_d
 attach(whole_dataset)
 predictors = whole_dataset[,c(-1)]
 response = target = whole_dataset$Happiness.Score
-
-```
-# train-test split
-```{r}
 set.seed(7)
 n = nrow(whole_dataset)
 train_index=sample(n,n*0.9)
@@ -477,15 +497,15 @@ print(paste("Shape of Testing data is :", dim(test_features)[1], "rows and", dim
 
 # Linear Regression Model
 ```{r}
-lin_reg = lm(train_response~., data=train_features)
+lin_reg = lin_reg1 = lm(train_response~., data=train_features)
 summary(lin_reg)
 
 # see if there is multicolinearity
 vif_values = vif(lin_reg)
-barplot(vif_values, main = "VIF Values", horiz = TRUE)
+# barplot(vif_values, main = "VIF Values", horiz = TRUE)
 
 # Sort VIF values in descending order for better visualization
-sorted_vif <- sort(vif_values, decreasing = TRUE)
+sorted_vif = sort(vif_values, decreasing = TRUE)
 
 # Create a bar plot with improved visualization
 barplot(sorted_vif, 
@@ -525,16 +545,16 @@ test_response=response[-train_index]
 print(paste("Shape of Testing data is :", dim(test_features)[1], "rows and", dim(test_features)[2], "columns."))
 
 
-lin_reg = lm(train_response~., data=train_features)
+lin_reg = lin_reg1 = lm(train_response~., data=train_features)
 summary(lin_reg)
 
 # see if there is multicolinearity
 vif_values = vif(lin_reg)
 vif_values
-barplot(vif_values, main = "VIF Values", horiz = TRUE)
+# barplot(vif_values, main = "VIF Values", horiz = TRUE)
 
 # Sort VIF values in descending order for better visualization
-sorted_vif <- sort(vif_values, decreasing = TRUE)
+sorted_vif = sort(vif_values, decreasing = TRUE)
 
 # Create a bar plot with improved visualization
 barplot(sorted_vif, 
@@ -554,8 +574,6 @@ barplot(sorted_vif,
 
 
 ```
-
-
 
 # Linear Regression without GDP
 ```{r}
@@ -581,7 +599,7 @@ test_response=response[-train_index]
 print(paste("Shape of Testing data is :", dim(test_features)[1], "rows and", dim(test_features)[2], "columns."))
 
 
-lin_reg = lm(train_response~., data=train_features)
+lin_reg = lin_reg2 = lm(train_response~., data=train_features)
 
 print("Training MSE: ")
 mean((predict(lin_reg, train_features) - train_response)^2)
@@ -594,10 +612,10 @@ summary(lin_reg)
 # see if there is multicolinearity
 vif_values = vif(lin_reg)
 vif_values
-barplot(vif_values, main = "VIF Values", horiz = TRUE)
+# barplot(vif_values, main = "VIF Values", horiz = TRUE)
 
 # Sort VIF values in descending order for better visualization
-sorted_vif <- sort(vif_values, decreasing = TRUE)
+sorted_vif = sort(vif_values, decreasing = TRUE)
 
 # Create a bar plot with improved visualization
 barplot(sorted_vif, 
@@ -638,7 +656,7 @@ test_response=response[-train_index]
 print(paste("Shape of Testing data is :", dim(test_features)[1], "rows and", dim(test_features)[2], "columns."))
 
 
-lin_reg = lm(train_response~., data=train_features)
+lin_reg = lin_reg3=  lm(train_response~., data=train_features)
 
 
 print("Training MSE: ")
@@ -654,10 +672,10 @@ summary(lin_reg)
 # see if there is multicolinearity
 vif_values = vif(lin_reg)
 vif_values
-barplot(vif_values, main = "VIF Values", horiz = TRUE)
+# barplot(vif_values, main = "VIF Values", horiz = TRUE)
 
 # Sort VIF values in descending order for better visualization
-sorted_vif <- sort(vif_values, decreasing = TRUE)
+sorted_vif = sort(vif_values, decreasing = TRUE)
 
 # Create a bar plot with improved visualization
 barplot(sorted_vif, 
@@ -699,11 +717,8 @@ mean((predict(lasso_reg, as.matrix(test_features)) - test_response)^2)
 coef(lasso_reg)
 # summary(lass_reg)
 
-
-plot(lasso_reg, xvar = "lambda")
-
-
-
+# 
+# plot(lasso_reg, xvar = "lambda")
 
 # #use fitted best model to make predictions
 # y_predicted <- predict(lasso_reg, s = lambda_best, newx = as.matrix(train_features))
@@ -727,28 +742,26 @@ plot(lasso_reg, xvar = "lambda")
 ```{r}
 # see if there is multicolinearity
 # vif_values = vif(lasso_reg, x =as.matrix(train_features))
-vif_lasso <- vif(lasso_reg, x = as.matrix(train_features))
-
-
-barplot(vif_values, main = "VIF Values", horiz = TRUE)
-
-# Sort VIF values in descending order for better visualization
-sorted_vif <- sort(vif_values, decreasing = TRUE)
-
-# Create a bar plot with improved visualization
-barplot(sorted_vif, 
-        horiz = TRUE, 
-        main = "VIF Values for Multicollinearity Check",
-        xlab = "VIF",
-        col = "skyblue",  # Change bar color
-        border = "black",  # Add black borders to bars
-        xlim = c(0, max(sorted_vif) * 1.2),  # Extend x-axis limit for better view
-        las = 1,  # Rotate y-axis labels horizontally
-        names.arg = names(sorted_vif),  # Use variable names as labels
-        cex.names = 0.7  # Reduce label size for better readability
-)
-
-
+# vif_lasso <- vif(lasso_reg, x = as.matrix(train_features))
+# 
+# 
+# # barplot(vif_values, main = "VIF Values", horiz = TRUE)
+# 
+# # Sort VIF values in descending order for better visualization
+# sorted_vif = sort(vif_values, decreasing = TRUE)
+# 
+# # Create a bar plot with improved visualization
+# barplot(sorted_vif, 
+#         horiz = TRUE, 
+#         main = "VIF Values for Multicollinearity Check",
+#         xlab = "VIF",
+#         col = "skyblue",  # Change bar color
+#         border = "black",  # Add black borders to bars
+#         xlim = c(0, max(sorted_vif) * 1.2),  # Extend x-axis limit for better view
+#         las = 1,  # Rotate y-axis labels horizontally
+#         names.arg = names(sorted_vif),  # Use variable names as labels
+#         cex.names = 0.7  # Reduce label size for better readability
+# )
 ```
 
 
@@ -782,8 +795,6 @@ mean((predict(ridge_reg, as.matrix(test_features)) - test_response)^2)
 coef(ridge_reg)
 # summary(ridge_reg)
 
-
-plot(ridge_reg, xvar = "lambda")
 ```
 
 # K-Nearest Neighbour Model
@@ -811,16 +822,20 @@ mean((predict(ridge_reg, as.matrix(test_features)) - test_response)^2)
 mean((predict(knn_model, test_features) - test_response)^2)
 
 # summary(knn_model)$adj.r.squared
+
+# | Models               | Train MSE | Test MSE | Adj. R^2
+# |----------------------|-----------|----------|----------|
+# | Linear Regression    |  0.45     |  0.51    | 62.61
+# | Lasso Regression     |  0.45     |  0.54    |
+# | Ridge Regression     |  0.45     |  0.55    |
+# | KNN                  |  0.20     |  0.17    |
 ```
 
-| Models               | Train MSE | Test MSE | Adj. R^2
-|----------------------|-----------|----------|----------|
-| Linear Regression    |  0.45     |  0.51    | 62.61
-| Lasso Regression     |  0.45     |  0.52    |
-| Ridge Regression     |  0.95     |  1.11    |
-| KNN                  |  0.20     |  0.17    |
+
 
 ## Plots
 ```{r}
-
+plot(lin_reg1)
+plot(lin_reg2)
+plot(lin_reg3)
 ```
