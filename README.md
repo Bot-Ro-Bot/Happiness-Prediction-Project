@@ -43,8 +43,7 @@ An exploratory analysis of associated factors for happiness is done. Each factor
 ## Results
 The analysis reveals associations between predictors (Life Expectancy, GDP per capita, Social Support, Freedom) and happiness scores. Corruption shows a negative association, while Generosity displays none. Multicollinearity among predictors affects the stability and accuracy of the linear regression model.
 
-## Tech Stack
-* R-Studio
+## Tech Stack (R-Studio)
 * library(car)
 * library(psych)
 * library(leaps)
